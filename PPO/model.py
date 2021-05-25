@@ -9,13 +9,15 @@ LastEditTime: 2021-04-08 22:36:43
 Discription: 
 Environment: 
 '''
+import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
+from torch.distributions import MultivariateNormal
 class Actor(nn.Module):
     def __init__(self,state_dim, action_dim, args):
         super(Actor, self).__init__()
-
-        if args.has_continuous_action_space:
+        self.has_continuous_action_space = args.has_continuous_action_space
+        if self.has_continuous_action_space:
             self.actor = nn.Sequential(
                 nn.Linear(state_dim, args.hidden_dim),
                 nn.ReLU(),
@@ -34,8 +36,13 @@ class Actor(nn.Module):
                     nn.Softmax(dim=-1)
             )
     def forward(self, state):
-        dist = self.actor(state)
-        dist = Categorical(dist)
+        if self.has_continuous_action_space:
+            action_mean = self.actor(state)
+            cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
+            dist = MultivariateNormal(action_mean, cov_mat)
+        else:
+            dist = self.actor(state)
+            dist = Categorical(dist)
         return dist
 
 class Critic(nn.Module):

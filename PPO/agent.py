@@ -27,12 +27,12 @@ class PPO:
         self.loss = 0
 
     def choose_action(self, observation):
-        state = torch.tensor([observation], dtype=torch.float).to(self.device)
+        state = torch.tensor([observation], dtype=torch.float).to(self.device)#注意cuda上面的变量类型只能是tensor，不能是其他
         dist = self.actor(state)
         value = self.critic(state)
         action = dist.sample()
-        probs = torch.squeeze(dist.log_prob(action)).item()
-        action = torch.squeeze(action).item()
+        probs = torch.squeeze(dist.log_prob(action)).item()#log_prob(value)是计算value在定义的正态分布（mean,1）中对应的概率的对数，正太分布概率密度函数是
+        action = torch.squeeze(action).item()#item()返回的是tensor中的值，且只能返回单个值（标量），不能返回向量，使用返回loss等
         value = torch.squeeze(value).item()
         return action, probs, value
 
@@ -42,17 +42,9 @@ class PPO:
             reward_arr, dones_arr, batches = \
                     self.memory.sample()
             values = vals_arr
-            ### compute advantage ###
-            advantage = np.zeros(len(reward_arr), dtype=np.float32)
-            for t in range(len(reward_arr)-1):
-                discount = 1
-                a_t = 0
-                for k in range(t, len(reward_arr)-1):
-                    a_t += discount*(reward_arr[k] + self.gamma*values[k+1]*\
-                            (1-int(dones_arr[k])) - values[k])
-                    discount *= self.gamma*self.gae_lambda
-                advantage[t] = a_t
-            advantage = torch.tensor(advantage).to(self.device)
+
+            advantage = self.critic_learn(reward_arr, dones_arr, values)
+
             ### SGD ###
             values = torch.tensor(values).to(self.device)
             for batch in batches:
@@ -78,7 +70,21 @@ class PPO:
                 total_loss.backward()
                 self.actor_optimizer.step()
                 self.critic_optimizer.step()
-        self.memory.clear()  
+        self.memory.clear()
+    def critic_learn(self, reward_arr, dones_arr, values):
+        ### compute advantage ###
+        advantage = np.zeros(len(reward_arr), dtype=np.float32)
+        for t in range(len(reward_arr) - 1):
+            discount = 1
+            a_t = 0
+            for k in range(t, len(reward_arr) - 1):
+                a_t += discount * (reward_arr[k] + self.gamma * values[k + 1] * \
+                                   (1 - int(dones_arr[k])) - values[k])
+                discount *= self.gamma * self.gae_lambda
+            advantage[t] = a_t
+        advantage = torch.tensor(advantage).to(self.device)
+        return advantage
+
     def save_model(self,path):
         actor_checkpoint = os.path.join(path, 'ppo_actor.pt')
         critic_checkpoint= os.path.join(path, 'ppo_critic.pt')
