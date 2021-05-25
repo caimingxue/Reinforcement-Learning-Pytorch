@@ -38,13 +38,14 @@ parser.add_argument("--env_name", default="CartPole-v0")
 parser.add_argument("--train_eps", type=int, default=600)
 parser.add_argument("--batch_size", type=int, default=10)
 parser.add_argument("--lr", type=float, default=0.01)
-parser.add_argument('--gamma', type=float, default=0.99, metavar='G',help='discount factor(default:0.99)')
+parser.add_argument('--gamma', type=float, default=0.99, metavar='G', help='discount factor(default:0.99)')
 parser.add_argument('--hidden_dim', type=int, default=36)
-parser.add_argument('--seed',type=int, default=10, metavar='N',help='random seed (default: 543)')
-parser.add_argument('--render',action='store_false',help='render the environment')
+parser.add_argument('--seed',type=int, default=10, metavar='N', help='random seed (default: 543)')
+parser.add_argument('--render',action='store_false', help='render the environment')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='interval between training status logs (default: 10)')
 parser.add_argument('--train', dest='train', action='store_true', default=True)
+parser.add_argument("--test_eps", type=int, default=60)
 args = parser.parse_args()
 
 def train(args, env, agent):
@@ -75,9 +76,8 @@ def train(args, env, agent):
         else:
             ma_rewards_epsisode.append(total_reward)
 
-        if episode % args.batch_size == 0 and episode > 0:
+        # if episode % args.batch_size == 0 and episode > 0:
 
-            print("***************")
     print("complete training")
     return rewards_epsisode, ma_rewards_epsisode
 
@@ -121,4 +121,4 @@ if __name__ == "__main__":
     plot_rewards(rewards_epsisode, ma_rewards_epsisode, tag="train", algo="Policy Gradient", path=RESULT_PATH)
     if args.train:
         agent.load_model(SAVED_MODEL_PATH)
-        eval_model(args.env_name, agent, 1, 50)
+        eval_model(args.env_name, agent, args.seed, args.test_eps)
