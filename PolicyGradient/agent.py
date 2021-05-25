@@ -14,7 +14,7 @@ from torch.distributions import Categorical
 from torch.autograd import Variable
 import torch.nn.functional as F
 import numpy as np
-from PolicyGradient.model_cmx import MLP
+from PolicyGradient.model import MLP
 
 
 class PolicyGradient:
@@ -46,10 +46,13 @@ class PolicyGradient:
         self.ep_obs.append(state)
         self.ep_as.append(action)
         self.ep_rs.append(reward)
+
+    # 根据一个episode的每个step的reward列表，计算每一个Step的Gt
     def discount_and_norm_rewards(self):
         discounted_ep_rs = np.zeros_like(self.ep_rs)
         running_cumulative = 0
         for i in reversed(range(0, len(self.ep_rs))):
+            # G_t = r_t + γ·r_t+1 + ... = r_t + γ·G_t+1
             running_cumulative = self.ep_rs[i] + self.gamma * running_cumulative
             discounted_ep_rs[i] = running_cumulative
         # normalize episode reward

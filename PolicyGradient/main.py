@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import datetime
 import argparse
 from itertools import count
-from PolicyGradient.agent_cmx import PolicyGradient
+from PolicyGradient.agent import PolicyGradient
 from common.plot import plot_rewards
 from common.utils import save_results
 
