@@ -1,32 +1,29 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-Author: John
-Email: johnjim0816@gmail.com
-Date: 2021-03-23 15:17:42
-LastEditor: John
-LastEditTime: 2021-04-28 10:11:09
-Discription: 
+Author: Mingxue Cai
+Email: im_caimingxue@163.com
+Date: 2021-05-25
 Environment: 
 '''
 import os
 import numpy as np
 import torch 
 import torch.optim as optim
-from PPO.model import Actor,Critic
+from PPO.model import Actor, Critic
 from PPO.memory import PPOMemory
 class PPO:
-    def __init__(self, state_dim, action_dim,cfg):
-        self.gamma = cfg.gamma
-        self.policy_clip = cfg.policy_clip
-        self.n_epochs = cfg.n_epochs
-        self.gae_lambda = cfg.gae_lambda
-        self.device = cfg.device
-        self.actor = Actor(state_dim, action_dim,cfg.hidden_dim).to(self.device)
-        self.critic = Critic(state_dim,cfg.hidden_dim).to(self.device)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=cfg.actor_lr)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=cfg.critic_lr)
-        self.memory = PPOMemory(cfg.batch_size)
+    def __init__(self, state_dim, action_dim, args):
+        self.gamma = args.gamma
+        self.policy_clip = args.policy_clip
+        self.n_epochs = args.n_epochs
+        self.gae_lambda = args.gae_lambda
+        self.device = args.device
+        self.actor = Actor(state_dim, action_dim, args).to(self.device)
+        self.critic = Critic(state_dim, args.hidden_dim).to(self.device)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=args.actor_lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=args.critic_lr)
+        self.memory = PPOMemory(args.batch_size)
         self.loss = 0
 
     def choose_action(self, observation):
@@ -39,7 +36,7 @@ class PPO:
         value = torch.squeeze(value).item()
         return action, probs, value
 
-    def update(self):
+    def learn(self):
         for _ in range(self.n_epochs):
             state_arr, action_arr, old_prob_arr, vals_arr,\
             reward_arr, dones_arr, batches = \
@@ -82,12 +79,12 @@ class PPO:
                 self.actor_optimizer.step()
                 self.critic_optimizer.step()
         self.memory.clear()  
-    def save(self,path):
+    def save_model(self,path):
         actor_checkpoint = os.path.join(path, 'ppo_actor.pt')
         critic_checkpoint= os.path.join(path, 'ppo_critic.pt')
         torch.save(self.actor.state_dict(), actor_checkpoint)
         torch.save(self.critic.state_dict(), critic_checkpoint)
-    def load(self,path):
+    def load_model(self,path):
         actor_checkpoint = os.path.join(path, 'ppo_actor.pt')
         critic_checkpoint= os.path.join(path, 'ppo_critic.pt')
         self.actor.load_state_dict(torch.load(actor_checkpoint)) 
