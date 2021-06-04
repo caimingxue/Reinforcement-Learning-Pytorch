@@ -27,6 +27,7 @@ if not os.path.exists(os.path.split(os.path.abspath(__file__))[0]+"/saved_model/
     os.mkdir(os.path.split(os.path.abspath(__file__))[0]+"/saved_model/")
 if not os.path.exists(SAVED_MODEL_PATH):
     os.mkdir(SAVED_MODEL_PATH)
+
 RESULT_PATH = os.path.split(os.path.abspath(__file__))[0]+"/results/"+SEQUENCE+'/' # path to save rewards
 if not os.path.exists(os.path.split(os.path.abspath(__file__))[0]+"/results/"):
     os.mkdir(os.path.split(os.path.abspath(__file__))[0]+"/results/")

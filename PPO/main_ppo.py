@@ -15,7 +15,7 @@ import gym
 import numpy as np
 import torch
 import datetime
-from PPO.agent import PPO
+from PPO.agent_ppo import PPO
 from common.plot import plot_rewards
 from common.utils import save_results,make_dir
 import parser

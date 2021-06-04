@@ -43,7 +43,7 @@ class PPO:
                     self.memory.sample()
             values = vals_arr
 
-            advantage = self.critic_learn(reward_arr, dones_arr, values)
+            advantage = self.compute_advantages(reward_arr, dones_arr, values)
 
             ### SGD ###
             values = torch.tensor(values).to(self.device)
@@ -71,7 +71,7 @@ class PPO:
                 self.actor_optimizer.step()
                 self.critic_optimizer.step()
         self.memory.clear()
-    def critic_learn(self, reward_arr, dones_arr, values):
+    def compute_advantages(self, reward_arr, dones_arr, values):
         ### compute advantage ###
         advantage = np.zeros(len(reward_arr), dtype=np.float32)
         for t in range(len(reward_arr) - 1):
@@ -84,6 +84,36 @@ class PPO:
             advantage[t] = a_t
         advantage = torch.tensor(advantage).to(self.device)
         return advantage
+
+    def compute_rtgs(self, batch_rews):
+        """
+            Compute the Reward-To-Go of each timestep in a batch given the rewards.
+
+            Parameters:
+                batch_rews - the rewards in a batch, Shape: (number of episodes, number of timesteps per episode)
+
+            Return:
+                batch_rtgs - the rewards to go, Shape: (number of timesteps in batch)
+        """
+        # The rewards-to-go (rtg) per episode per batch to return.
+        # The shape will be (num timesteps per episode)
+        batch_rtgs = []
+
+        # Iterate through each episode
+        for ep_rews in reversed(batch_rews):
+
+            discounted_reward = 0  # The discounted reward so far
+
+            # Iterate through all rewards in the episode. We go backwards for smoother calculation of each
+            # discounted return (think about why it would be harder starting from the beginning)
+            for rew in reversed(ep_rews):
+                discounted_reward = rew + discounted_reward * self.gamma
+                batch_rtgs.insert(0, discounted_reward)
+
+        # Convert the rewards-to-go into a tensor
+        batch_rtgs = torch.tensor(batch_rtgs, dtype=torch.float)
+
+        return batch_rtgs
 
     def save_model(self,path):
         actor_checkpoint = os.path.join(path, 'ppo_actor.pt')
