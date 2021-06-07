@@ -18,6 +18,7 @@ class DQN:
         self.batch_size = args.batch_size
         self.lr = args.lr
         self.gamma = args.gamma
+        self.double_DQN = args.double_DQN
         # e-greedy策略相关参数
         self.frame_idx = 0  # 用于epsilon的衰减计数
         self.epsilon = lambda frame_idx: args.epsilon_end + \
@@ -29,8 +30,8 @@ class DQN:
         self.policy_net = MLP(self.state_dim, self.action_dim, hidden_dim=self.hidden_dim).to(self.device)
         self.target_net = MLP(self.state_dim, self.action_dim, hidden_dim=self.hidden_dim).to(self.device)
         # 加载之前训练好的模型，没有预训练好的模型时可以注释
-        model_path = "/Users/cmx/github_project/Reinforcement-Learning-Pytorch/DQN/saved_model/20210604-151247/pg_checkpoint.pt"
-        self.policy_net.load_state_dict(torch.load(model_path))
+        # model_path = "/Users/cmx/github_project/Reinforcement-Learning-Pytorch/DQN/saved_model/20210604-151247/pg_checkpoint.pt"
+        # self.policy_net.load_state_dict(torch.load(model_path))
         #make the above network have same parameters
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
@@ -45,7 +46,7 @@ class DQN:
         if random.random() > self.epsilon(self.frame_idx):
             with torch.no_grad():
                 state = torch.tensor([state], device=self.device, dtype=torch.float32)
-                q_value = self.policy_net(state) #state-action value
+                q_value = self.policy_net(state) #state-action value . the net use theta value
                 action = q_value.max(1)[1].item() #返回索引值
         else:
             action = random.randrange(self.action_dim)
@@ -69,8 +70,13 @@ class DQN:
         # for each batch state according to policy_net
         q_values_temp = self.policy_net(state_batch)
         q_values = q_values_temp.gather(dim=1, index=action_batch) # state-action value
+        #the net use theta- value
+        if self.double_DQN:
+            next_state_actions = self.policy_net(next_state_batch).max(1)[1]
+            next_q_values = self.target_net(next_state_batch).gather(dim=1, index=next_state_actions.unsqueeze(-1)).squeeze(-1)
+        else:
+            next_q_values = self.policy_net(next_state_batch).max(1)[0].detach()  # detach用于冻结梯度，防止对target_Q进行更新。不参与反向传播计算
 
-        next_q_values = self.policy_net(next_state_batch).max(1)[0].detach() #detach用于冻结梯度，防止对target_Q进行更新。不参与反向传播计算
         #compute expected q_values （V（s+1））if s is final state in an episode, next_q_value is NULL(done batch ==1)
         expected_q_values = reward_batch + self.gamma * next_q_values * (1 - done_batch)
         self.loss = nn.MSELoss()(q_values, expected_q_values.unsqueeze(1))

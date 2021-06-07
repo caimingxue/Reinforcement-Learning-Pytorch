@@ -17,6 +17,7 @@ from common.plot import plot_rewards
 from dqn_agent import DQN
 from args_config import get_args
 
+
 curr_path = os.path.dirname(__file__)
 # parent_path = os.path.dirname(curr_path)
 # sys.path.append(parent_path)  # add current terminal path to sys.path

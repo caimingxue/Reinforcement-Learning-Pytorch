@@ -22,7 +22,8 @@ def get_args():
 	parser.add_argument("--env_name", default="CartPole-v0")
 	parser.add_argument("--train_eps", type=int, default=200)
 	parser.add_argument("--test_eps", type=int, default=50)
-	parser.add_argument("--target_network_update_frequency", type=int, default=2)
+	parser.add_argument("--double_DQN", type=bool, default=True)
+	parser.add_argument("--target_network_update_frequency", type=int, default=4)
 
 	parser.add_argument("--batch_size", type=int, default=32)
 	parser.add_argument("--lr", type=float, default=0.0001)
