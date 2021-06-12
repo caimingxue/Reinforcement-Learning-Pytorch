@@ -15,6 +15,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import numpy as np
 from PolicyGradient.model import MLP
+from common.model import baseline_net
 
 
 class PolicyGradient:
@@ -28,7 +29,9 @@ class PolicyGradient:
         self.ep_obs, self.ep_as, self.ep_rs = [], [], []
         # init network params
         self.policy_net = MLP(state_dim, action_dim, args.hidden_dim)
+        self.baseline_net = baseline_net(state_dim, 1, args.hidden_dim)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=args.lr)
+        self.baseline_net_optimizer = torch.optim.Adam(self.baseline_net.parameters(), lr=args.lr)
 
     def choose_action(self, state):
         state = torch.from_numpy(state).float()
@@ -61,6 +64,14 @@ class PolicyGradient:
         for i in range(len(discounted_ep_rs)):
             discounted_ep_rs[i] = (discounted_ep_rs[i] - reward_mean)/reward_std
         return discounted_ep_rs
+
+    def baseline_compute(self):
+        baseline_value = np.zeros_like(self.ep_rs)
+        for i in reversed(range(0, len(self.ep_obs))):
+            baseline_value[i] = self.baseline_net(torch.FloatTensor(self.ep_obs[i]))
+        return baseline_value
+
+
     def learn(self):
         #step 1: discount and normalize episode reward
         # G value for every state
@@ -84,10 +95,12 @@ class PolicyGradient:
     def gradient_computation_test(self, discounted_ep_rs_norm):
         softmax_input = self.policy_net.forward(torch.FloatTensor(self.ep_obs))
         # all_act_prob = F.softmax(softmax_input, dim=0).detach().numpy()
+        baseline_value = self.baseline_compute()
+        baseline_value = torch.FloatTensor(baseline_value)
         neg_log_prob = F.cross_entropy(input=softmax_input, target=torch.LongTensor(self.ep_as),
                                        reduction='none')
         discounted_ep_rs_norm = torch.FloatTensor(discounted_ep_rs_norm)
-        loss = torch.mean(neg_log_prob * discounted_ep_rs_norm)
+        loss = torch.mean(neg_log_prob * (discounted_ep_rs_norm - baseline_value).detach())
         self.optimizer.zero_grad()
         # probs = self.policy_net(state)
         # m = Bernoulli(probs)
@@ -96,6 +109,12 @@ class PolicyGradient:
         # #print("loss value is :", loss)
         loss.backward()
         self.optimizer.step()
+
+        baseline_loss = (0.5 * (discounted_ep_rs_norm - baseline_value) ** 2).sum()
+        baseline_loss.requires_grad_() #设置为可以自动求梯度
+        self.baseline_net_optimizer.zero_grad()
+        baseline_loss.backward()
+        self.baseline_net_optimizer.step()
     def save_model(self, path):
         torch.save(self.policy_net.state_dict(), path + 'pg_checkpoint.pt')
     def load_model(self, path):

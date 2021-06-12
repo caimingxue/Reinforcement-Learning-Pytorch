@@ -25,7 +25,7 @@ def get_args():
 	parser.add_argument("--target_network_update_frequency", type=int, default=4)
 
 	parser.add_argument("--batch_size", type=int, default=32)
-	parser.add_argument("--lr", type=float, default=0.0001)
+	parser.add_argument("--lr", type=float, default=0.001)
 	parser.add_argument('--gamma', type=float, default=0.95, metavar='G', help='discount factor(default:0.99)')
 	parser.add_argument("--epsilon_start", type=float, default=1)
 	parser.add_argument("--epsilon_end", type=float, default=0.01)

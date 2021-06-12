@@ -10,7 +10,7 @@ max_t=200
 gamma=0.9
 hidden=32
 env=gym.make('CartPole-v0')
-device="cuda"
+device="cpu"
 env=env.unwrapped
 n_action=env.action_space.n
 n_state=env.observation_space.shape[0]
@@ -80,6 +80,7 @@ class baseline_REINFORCE():
 
         loss=-(log_prob*(returns-v).detach()).sum()
         loss_v=(0.5*(returns-v)**2).sum()
+
 
         #update separately
         self.optimizerP.zero_grad()

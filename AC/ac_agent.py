@@ -24,6 +24,7 @@ class AC:
 
         self.actor_net = actor(self.state_dim, self.action_dim, self.hidden_dim).to(self.device)
         self.critic_net = critic(self.state_dim, 1, self.hidden_dim).to(self.device)
+        self.target_net = critic(self.state_dim, 1, self.hidden_dim).to(self.device)
         # self.target_net = ActorCritic(self.state_dim, self.action_dim, self.hidden_dim).to(self.device)
         # 加载之前训练好的模型，没有预训练好的模型时可以注释
         # model_path = "/Users/cmx/github_project/Reinforcement-Learning-Pytorch/DQN/saved_model/20210604-151247/pg_checkpoint.pt"

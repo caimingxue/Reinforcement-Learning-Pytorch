@@ -51,7 +51,8 @@ def train(args, env, agent):
             state = torch.FloatTensor(state).to(args.device)
             state_value_eval = agent.critic_net(state)
             next_state = torch.FloatTensor(next_state).to(args.device)
-            TD_target = reward + args.gamma * agent.critic_net(next_state)
+            # use target net to compute value of next state to avoid "自举"
+            TD_target = reward + args.gamma * agent.target_net(next_state)
             # TD_error = state_value_eval - TD_target.detach()
             TD_error = TD_target.detach() - state_value_eval
             critic_net_loss = TD_error ** 2
@@ -67,6 +68,8 @@ def train(args, env, agent):
 
             state = next_state
             num_step += 1
+        agent.target_net.load_state_dict(agent.critic_net.state_dict())
+
 
         # rewards = torch.tensor(rewards, device=args.device, dtype=torch.float).unsqueeze(1)
         # done_mask.append(torch.FloatTensor(1 - done).unsqueeze(1).to(args.device))
