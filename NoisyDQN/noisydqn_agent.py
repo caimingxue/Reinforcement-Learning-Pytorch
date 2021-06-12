@@ -55,7 +55,11 @@ class NOISY_DQN:
             action = random.randrange(self.action_dim)
         return action
     def act(self, state):
-        action = self.policy_net.act(state)
+        self.frame_idx += 1
+        if random.random() > self.epsilon(self.frame_idx):
+            action = self.policy_net.act(state)
+        else:
+            action = random.randrange(self.action_dim)
         return action
 
     def learn(self):

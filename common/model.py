@@ -109,62 +109,68 @@ class NoisyDQN(nn.Module):
         self.noisy1.reset_noise()
         self.noisy2.reset_noise()
 
+# class ActorCritic(nn.Module):
+#     def __init__(self, input_dim, output_dim, hidden_dim):
+#         super(ActorCritic, self).__init__()
+#         self.critic = nn.Sequential(
+#             nn.Linear(input_dim, hidden_dim),
+#             nn.ReLU(),
+#             nn.Linear(hidden_dim, 1)
+#         )
+#
+#         self.actor = nn.Sequential(
+#             nn.Linear(input_dim, hidden_dim),
+#             nn.ReLU(),
+#             nn.Linear(hidden_dim, output_dim),
+#             # 使得在softmax操作之后在dim这个维度相加等于1
+#             # 注意，默认的方法已经弃用，最好在使用的时候声明dim
+#             nn.Softmax()
+#         )
+#
+#     def forward(self, x):
+#         # critic: evaluates value in the state s_t
+#         value = self.critic(x)
+#         # actor: choses action to take from state s_t
+#         # by returning probability of each action
+#         probs = self.actor(x)
+#
+#         # 分类,对actor输出的动作概率进行分类统计
+#         # create a categorical distribution over the list of probabilities of actions
+#         dist  = Categorical(probs)
+#
+#         # return values for both actor and critic as a tuple of 2 values:
+#         # 1(action prob). a list with the probability of each action over the action space
+#         # 2(state value). the value from state s_t
+#         return dist, value
 
+class actor(nn.Module):  # policy net
+    # actor: choses action to take from state s_t
+    # by returning probability of each action
+    def __init__(self, input_dim, output_dim, hidden_dim):
+        super(actor, self).__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.softmax = nn.Softmax(dim=0)
 
-class Critic(nn.Module):
-    def __init__(self, n_obs, output_dim, hidden_size, init_w=3e-3):
-        super(Critic, self).__init__()
-        
-        self.linear1 = nn.Linear(n_obs + output_dim, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
-        self.linear3 = nn.Linear(hidden_size, 1)
-        # 随机初始化为较小的值
-        self.linear3.weight.data.uniform_(-init_w, init_w)
-        self.linear3.bias.data.uniform_(-init_w, init_w)
-        
-    def forward(self, state, action):
-        # 按维数1拼接
-        x = torch.cat([state, action], 1)
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = self.linear3(x)
-        return x
-
-class Actor(nn.Module):
-    def __init__(self, n_obs, output_dim, hidden_size, init_w=3e-3):
-        super(Actor, self).__init__()  
-        self.linear1 = nn.Linear(n_obs, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
-        self.linear3 = nn.Linear(hidden_size, output_dim)
-        
-        self.linear3.weight.data.uniform_(-init_w, init_w)
-        self.linear3.bias.data.uniform_(-init_w, init_w)
-        
     def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = F.tanh(self.linear3(x))
-        return x
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        prob = self.softmax(x)
+        # 分类,对actor输出的动作概率进行分类统计
+        # create a categorical distribution over the list of probabilities of actions
+        dist = Categorical(prob)
+        return dist
 
-class ActorCritic(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim=256):
-        super(ActorCritic, self).__init__()
-        self.critic = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, 1)
-        )
-        
-        self.actor = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, output_dim),
-            nn.Softmax(dim=1),
-        )
-        
+class critic(nn.Module):  # Q net:evaluates value in the state s_t
+    def __init__(self, input_dim, output_dim, hidden_dim):
+        super(critic, self).__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+
     def forward(self, x):
-        value = self.critic(x)
-        probs = self.actor(x)
-        dist  = Categorical(probs)
-        return dist, value
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        return x
 

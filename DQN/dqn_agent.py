@@ -82,7 +82,7 @@ class DQN:
         self.loss = nn.MSELoss()(q_values, expected_q_values.unsqueeze(1))
         # optimize model
         self.optimizer.zero_grad()
-        self.loss.backward()
+        self.loss.backward(retain_graph=True)
         self.optimizer.step()
 
     def save_model(self, path):
